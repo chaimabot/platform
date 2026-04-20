@@ -1,0 +1,925 @@
+<!doctype html>
+<html class="light" lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>SmartPoultry - Votre poulailler, connecté et intelligent</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              outline: "#717971",
+              "secondary-container": "#0070ea",
+              secondary: "#0059bb",
+              "on-primary-container": "#88bd95",
+              "surface-container-lowest": "#ffffff",
+              "on-primary": "#ffffff",
+              "tertiary-fixed": "#ffd9dd",
+              "inverse-primary": "#9dd3aa",
+              primary: "#00361a",
+              "tertiary-container": "#6a323b",
+              "on-secondary-fixed-variant": "#004493",
+              "on-background": "#191c1d",
+              "surface-variant": "#e1e3e4",
+              "inverse-on-surface": "#f0f1f2",
+              "primary-container": "#1a4d2e",
+              "on-primary-fixed-variant": "#1d5031",
+              "secondary-fixed-dim": "#adc7ff",
+              tertiary: "#4f1c26",
+              "surface-container-low": "#f3f4f5",
+              "surface-bright": "#f8f9fa",
+              "on-error": "#ffffff",
+              "surface-container": "#edeeef",
+              "on-primary-fixed": "#00210e",
+              "on-secondary-container": "#fefcff",
+              "primary-fixed": "#b8f0c5",
+              "secondary-fixed": "#d8e2ff",
+              error: "#ba1a1a",
+              "inverse-surface": "#2e3132",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb2bb",
+              "primary-fixed-dim": "#9dd3aa",
+              "surface-dim": "#d9dadb",
+              "on-surface": "#191c1d",
+              "on-tertiary-fixed-variant": "#6e353e",
+              "on-error-container": "#93000a",
+              "on-tertiary-fixed": "#380b15",
+              background: "#f8f9fa",
+              "on-tertiary-container": "#e89ca5",
+              surface: "#f8f9fa",
+              "surface-container-high": "#e7e8e9",
+              "on-secondary": "#ffffff",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed": "#001a41",
+              "surface-tint": "#366847",
+              "surface-container-highest": "#e1e3e4",
+              "on-surface-variant": "#414942",
+              "outline-variant": "#c1c9bf",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            fontFamily: {
+              headline: ["Inter"],
+              body: ["Inter"],
+              label: ["Inter"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .glass-card {
+        background: rgba(225, 227, 228, 0.6);
+        backdrop-filter: blur(20px);
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      .hero-gradient {
+        background: linear-gradient(135deg, #00361a 0%, #1a4d2e 100%);
+      }
+
+      /* Toast notification */
+      #toast {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: #00361a;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 1rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        max-width: 380px;
+      }
+      #toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      #toast.error {
+        background: #ba1a1a;
+      }
+    </style>
+  </head>
+  <body class="bg-surface text-on-surface antialiased">
+    <!-- Toast Notification -->
+    <div id="toast">
+      <span
+        class="material-symbols-outlined"
+        id="toast-icon"
+        style="font-variation-settings: &quot;FILL&quot; 1"
+        >check_circle</span
+      >
+      <div>
+        <p class="font-bold text-sm" id="toast-title">Demande envoyée !</p>
+        <p class="text-xs opacity-80" id="toast-msg">
+          Nous vous contacterons sous 2 à 5 jours.
+        </p>
+      </div>
+    </div>
+
+    <!-- TopNavBar -->
+    <header
+      class="fixed top-0 w-full z-50 bg-emerald-950/60 backdrop-blur-xl dark:bg-emerald-950/80 shadow-[0_20px_50px_rgba(0,0,0,0.1)] bg-emerald-900/10 backdrop-saturate-150"
+    >
+      <div
+        class="flex items-center justify-between px-8 py-5 max-w-[1440px] mx-auto"
+      >
+        <div
+          class="text-2xl font-black tracking-tighter text-emerald-50 uppercase"
+        >
+          SmartPoultry
+        </div>
+        <nav
+          class="hidden md:flex items-center gap-8 font-['Inter'] antialiased tracking-tight"
+        >
+          <a
+            class="text-emerald-100/80 hover:text-emerald-50 transition-colors duration-300 hover:bg-white/5 rounded-full px-3 py-1"
+            href="#process"
+            >Process</a
+          >
+          <a
+            class="text-emerald-100/80 hover:text-emerald-50 transition-colors duration-300 hover:bg-white/5 rounded-full px-3 py-1"
+            href="#connectivity"
+            >Connectivity</a
+          >
+          <a
+            class="text-emerald-400 font-bold border-b-2 border-emerald-400 pb-1 hover:bg-white/5 rounded-full px-3 py-1"
+            href="#registration"
+            >Inscription</a
+          >
+          <a
+            class="text-emerald-100/80 hover:text-emerald-50 transition-colors duration-300 hover:bg-white/5 rounded-full px-3 py-1"
+            href="#contact"
+            >Contact</a
+          >
+        </nav>
+        <div class="flex items-center gap-4">
+          <div class="flex gap-2 text-emerald-50">
+            <span
+              class="material-symbols-outlined hover:bg-white/5 rounded-full p-2 cursor-pointer transition-all"
+              >sensors</span
+            >
+            <span
+              class="material-symbols-outlined hover:bg-white/5 rounded-full p-2 cursor-pointer transition-all"
+              >monitoring</span
+            >
+          </div>
+          <a
+            href="#registration"
+            class="bg-primary-container text-on-primary-container px-6 py-2 rounded-full font-bold transition-transform scale-95 active:scale-90"
+            >Get Started</a
+          >
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section
+      class="relative pt-32 pb-20 md:pt-48 md:pb-40 hero-gradient overflow-hidden"
+    >
+      <div
+        class="max-w-[1440px] mx-auto px-8 grid md:grid-cols-2 gap-12 items-center"
+      >
+        <div class="relative z-10">
+          <h1
+            class="text-emerald-50 text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6"
+          >
+            Votre poulailler, <br />
+            <span class="text-on-primary-container"
+              >connecté et intelligent</span
+            >
+          </h1>
+          <p
+            class="text-emerald-100/80 text-lg md:text-xl max-w-lg mb-10 leading-relaxed"
+          >
+            Optimisez la santé de vos volailles grâce à la précision de l'IoT.
+            Un laboratoire vivant au service de votre productivité.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a
+              class="bg-primary-fixed text-on-primary-fixed px-8 py-4 rounded-xl font-bold text-center transition-all hover:scale-105 active:scale-95 shadow-xl"
+              href="#registration"
+            >
+              Rejoindre le programme
+            </a>
+            <a
+              class="bg-white/10 backdrop-blur-md text-emerald-50 px-8 py-4 rounded-xl font-bold text-center border border-white/20 transition-all hover:bg-white/20"
+              href="#process"
+            >
+              En savoir plus
+            </a>
+          </div>
+        </div>
+        <div class="relative">
+          <div
+            class="absolute -top-20 -right-20 w-96 h-96 bg-emerald-500/20 blur-[100px] rounded-full"
+          ></div>
+          <div
+            class="relative glass-card rounded-[2rem] p-4 shadow-2xl transform rotate-3"
+          >
+            <img
+              alt="Poultry farm"
+              class="rounded-[1.5rem] w-full h-[500px] object-cover"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjeD4259pcc8eyhnh-WtstYRRHpipcsChNhwCAZxvqDLCYpL1vkh1tk5yed_TjULlyAYLuVD9-mLViPwh431rsM-aiXwmWzZx3RVgsmPsZobBoHdYekuEG5LhJ2SMCBod8odF3EoxqvkQrKu3zIgF6l0Byl_vGT_WnK9GUv1QiH5QtxZLoi1LoduOy_JtS1ly0HYQPJ13hWj9lZpyhSaUPHVL4h2fXKG3D1YescKDaz_sbr55ueJz-CsQeXmeiPvzjkQ4AwFHLhxC8"
+            />
+            <div
+              class="absolute -bottom-6 -left-6 bg-secondary-container text-white p-6 rounded-2xl shadow-xl flex items-center gap-4"
+            >
+              <span
+                class="material-symbols-outlined text-4xl"
+                style="font-variation-settings: &quot;FILL&quot; 1"
+                >sensors</span
+              >
+              <div>
+                <p
+                  class="text-xs uppercase tracking-widest font-bold opacity-80"
+                >
+                  Live Signal
+                </p>
+                <p class="text-xl font-bold">Système Actif</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Process Section -->
+    <section class="py-32 bg-surface-container-low" id="process">
+      <div class="max-w-[1440px] mx-auto px-8">
+        <div
+          class="flex flex-col md:flex-row justify-between items-end mb-20 gap-8"
+        >
+          <div class="max-w-2xl">
+            <span
+              class="text-secondary font-bold tracking-[0.2em] uppercase text-sm mb-4 block"
+              >Notre Méthodologie</span
+            >
+            <h2
+              class="text-primary text-4xl md:text-5xl font-black tracking-tight"
+            >
+              Installation en 4 étapes clés
+            </h2>
+          </div>
+          <p class="text-on-surface-variant max-w-sm">
+            Une transition fluide vers l'agriculture de précision, guidée par
+            nos experts.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Step 1 -->
+          <div
+            class="bg-surface-container-lowest p-8 rounded-3xl group hover:bg-primary transition-all duration-500"
+          >
+            <div
+              class="text-6xl font-black text-primary-fixed-dim/20 mb-8 group-hover:text-emerald-400/20"
+            >
+              01
+            </div>
+            <span
+              class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:text-emerald-100"
+              style="font-variation-settings: &quot;FILL&quot; 1"
+              >assignment</span
+            >
+            <h3
+              class="text-xl font-bold text-primary mb-4 group-hover:text-white"
+            >
+              Inscription
+            </h3>
+            <p class="text-on-surface-variant group-hover:text-emerald-100/70">
+              Soumettez votre dossier via notre formulaire détaillé en quelques
+              minutes.
+            </p>
+          </div>
+          <!-- Step 2 -->
+          <div
+            class="bg-surface-container-lowest p-8 rounded-3xl group hover:bg-primary transition-all duration-500 md:mt-12"
+          >
+            <div
+              class="text-6xl font-black text-primary-fixed-dim/20 mb-8 group-hover:text-emerald-400/20"
+            >
+              02
+            </div>
+            <span
+              class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:text-emerald-100"
+              style="font-variation-settings: &quot;FILL&quot; 1"
+              >verified</span
+            >
+            <h3
+              class="text-xl font-bold text-primary mb-4 group-hover:text-white"
+            >
+              Validation
+            </h3>
+            <p class="text-on-surface-variant group-hover:text-emerald-100/70">
+              Analyse de votre éligibilité sous 2 à 5 jours par nos techniciens.
+            </p>
+          </div>
+          <!-- Step 3 -->
+          <div
+            class="bg-surface-container-lowest p-8 rounded-3xl group hover:bg-primary transition-all duration-500"
+          >
+            <div
+              class="text-6xl font-black text-primary-fixed-dim/20 mb-8 group-hover:text-emerald-400/20"
+            >
+              03
+            </div>
+            <span
+              class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:text-emerald-100"
+              style="font-variation-settings: &quot;FILL&quot; 1"
+              >construction</span
+            >
+            <h3
+              class="text-xl font-bold text-primary mb-4 group-hover:text-white"
+            >
+              Installation
+            </h3>
+            <p class="text-on-surface-variant group-hover:text-emerald-100/70">
+              Mise en place gratuite des capteurs IoT (2-4 heures) sur site.
+            </p>
+          </div>
+          <!-- Step 4 -->
+          <div
+            class="bg-surface-container-lowest p-8 rounded-3xl group hover:bg-primary transition-all duration-500 md:mt-12"
+          >
+            <div
+              class="text-6xl font-black text-primary-fixed-dim/20 mb-8 group-hover:text-emerald-400/20"
+            >
+              04
+            </div>
+            <span
+              class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:text-emerald-100"
+              style="font-variation-settings: &quot;FILL&quot; 1"
+              >bolt</span
+            >
+            <h3
+              class="text-xl font-bold text-primary mb-4 group-hover:text-white"
+            >
+              Activation
+            </h3>
+            <p class="text-on-surface-variant group-hover:text-emerald-100/70">
+              Formation personnalisée et lancement de votre tableau de bord.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Registration Form Section -->
+    <section class="py-32 bg-surface" id="registration">
+      <div class="max-w-[1440px] mx-auto px-8 grid lg:grid-cols-12 gap-16">
+        <div class="lg:col-span-5">
+          <h2
+            class="text-4xl md:text-5xl font-black tracking-tight text-primary mb-8 leading-tight"
+          >
+            Prêt à transformer votre exploitation ?
+          </h2>
+          <p class="text-on-surface-variant text-lg mb-12">
+            Remplissez le formulaire ci-contre pour rejoindre notre écosystème
+            intelligent. Un expert vous contactera dans les plus brefs délais.
+          </p>
+          <div class="space-y-8">
+            <div class="flex items-start gap-4">
+              <div class="bg-secondary-fixed p-3 rounded-xl text-secondary">
+                <span class="material-symbols-outlined">support_agent</span>
+              </div>
+              <div>
+                <h4 class="font-bold text-primary">Accompagnement Dédié</h4>
+                <p class="text-sm text-on-surface-variant">
+                  Support technique 24/7 pour votre matériel.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <div
+                class="bg-primary-fixed p-3 rounded-xl text-primary-container"
+              >
+                <span class="material-symbols-outlined">update</span>
+              </div>
+              <div>
+                <h4 class="font-bold text-primary">Mises à jour Gratuites</h4>
+                <p class="text-sm text-on-surface-variant">
+                  Logiciel évolutif pour suivre vos besoins.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-7">
+          <!--
+        ============================================================
+        FORMSPREE — Remplacez YOUR_FORM_ID par votre identifiant
+        Créez votre formulaire gratuit sur https://formspree.io
+        Ex: action="https://formspree.io/f/xpwzabcd"
+        ============================================================
+      -->
+          <form
+            id="registration-form"
+            action="https://formspree.io/f/xgorzdqw"
+            method="POST"
+            class="bg-surface-container-low p-10 rounded-[2.5rem] shadow-sm space-y-8"
+          >
+            <!-- Champs cachés pour Formspree -->
+            <input
+              type="hidden"
+              name="_subject"
+              value="Nouvelle inscription SmartPoultry"
+            />
+            <input type="hidden" name="_language" value="fr" />
+
+            <div class="grid md:grid-cols-2 gap-8">
+              <div>
+                <label
+                  class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                  for="nom"
+                  >Nom Complet *</label
+                >
+                <input
+                  id="nom"
+                  name="nom"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                  placeholder="Ex: Jean Dupont"
+                  type="text"
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                  for="telephone"
+                  >Téléphone (+216) *</label
+                >
+                <input
+                  id="telephone"
+                  name="telephone"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                  placeholder="99 999 999"
+                  type="tel"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+              <div>
+                <label
+                  class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                  for="email"
+                  >Email *</label
+                >
+                <input
+                  id="email"
+                  name="email"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                  placeholder="contact@domaine.com"
+                  type="email"
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                  for="region"
+                  >Région</label
+                >
+                <select
+                  id="region"
+                  name="region"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                >
+                  <option>Ben Arous</option>
+                  <option>Tunis</option>
+                  <option>Ariana</option>
+                  <option>Nabeul</option>
+                  <option>Bizerte</option>
+                  <option>Sousse</option>
+                  <option>Sfax</option>
+                  <option>Autre</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                for="adresse"
+                >Adresse de l'exploitation</label
+              >
+              <input
+                id="adresse"
+                name="adresse"
+                class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                placeholder="Numéro, rue, code postal"
+                type="text"
+              />
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+              <div>
+                <label
+                  class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                  for="nb_volailles"
+                  >Nombre de volailles</label
+                >
+                <input
+                  id="nb_volailles"
+                  name="nb_volailles"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                  placeholder="0"
+                  type="number"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                  for="surface"
+                  >Surface (m²)</label
+                >
+                <input
+                  id="surface"
+                  name="surface"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                  placeholder="0"
+                  type="number"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                  for="densite"
+                  >Animaux / m²</label
+                >
+                <input
+                  id="densite"
+                  name="densite"
+                  class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                  placeholder="0"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                for="disponibilite"
+                >Disponibilité pour installation</label
+              >
+              <input
+                id="disponibilite"
+                name="disponibilite"
+                class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                placeholder="Ex: Lundi à Vendredi, Matin"
+                type="text"
+              />
+            </div>
+
+            <div>
+              <label
+                class="block text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2"
+                for="remarques"
+                >Remarques particulières</label
+              >
+              <textarea
+                id="remarques"
+                name="remarques"
+                class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary transition-all"
+                placeholder="Détails supplémentaires..."
+                rows="4"
+              ></textarea>
+            </div>
+
+            <button
+              id="submit-btn"
+              class="w-full hero-gradient text-white font-black py-5 rounded-2xl text-xl shadow-lg hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-3"
+              type="submit"
+            >
+              <span id="btn-text">Envoyer ma demande</span>
+              <span
+                id="btn-spinner"
+                class="hidden material-symbols-outlined animate-spin text-2xl"
+                >progress_activity</span
+              >
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- App Download Section -->
+    <section
+      class="py-24 bg-surface-container-low overflow-hidden relative"
+      id="connectivity"
+    >
+      <div class="max-w-[1440px] mx-auto px-8 relative z-10">
+        <div
+          class="bg-emerald-950 rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden"
+        >
+          <div
+            class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"
+          ></div>
+          <h2
+            class="text-4xl md:text-5xl font-black text-white mb-6 relative z-10"
+          >
+            Votre ferme dans votre poche
+          </h2>
+          <p
+            class="text-emerald-100/70 text-lg mb-12 max-w-2xl mx-auto relative z-10"
+          >
+            Surveillez vos capteurs, recevez des alertes en temps réel et gérez
+            votre exploitation où que vous soyez.
+          </p>
+          <div
+            class="flex flex-col sm:flex-row justify-center items-center gap-6 relative z-10"
+          >
+            <!-- Bouton Google Play (Coming Soon) -->
+            <div class="group relative">
+              <div
+                class="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"
+              ></div>
+              <button
+                class="relative bg-black text-white px-8 py-4 rounded-2xl flex items-center gap-4 border border-white/10 opacity-60 cursor-not-allowed"
+                disabled
+              >
+                <span class="material-symbols-outlined text-3xl">shop</span>
+                <!-- Correction ici -->
+                <div class="text-left">
+                  <p class="text-[10px] uppercase font-bold text-emerald-400">
+                    Google Play
+                  </p>
+                  <p class="text-lg font-bold">Coming Soon</p>
+                </div>
+              </button>
+            </div>
+
+            <!-- Bouton Télécharger l'APK -->
+            <a
+              href="https://expo.dev/accounts/chaimabn78/projects/mobile/builds/28483c01-7ab5-42fc-84a4-54a5a1f34cd7"
+              class="group relative"
+              id="apk-download"
+            >
+              <div
+                class="absolute -inset-1 bg-gradient-to-r from-blue-400 to-emerald-500 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000"
+              ></div>
+              <button
+                class="relative bg-white text-emerald-950 px-8 py-4 rounded-2xl flex items-center gap-4 hover:bg-emerald-50 transition-all"
+              >
+                <span class="material-symbols-outlined text-3xl">download</span>
+                <div class="text-left">
+                  <p class="text-[10px] uppercase font-bold text-emerald-700">
+                    Installation Directe
+                  </p>
+                  <p class="text-lg font-bold">Télécharger l'APK</p>
+                </div>
+              </button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="py-32 bg-surface" id="contact">
+      <div class="max-w-[1440px] mx-auto px-8">
+        <div class="grid lg:grid-cols-2 gap-16 items-center">
+          <div class="space-y-10">
+            <div>
+              <span
+                class="text-secondary font-bold tracking-[0.2em] uppercase text-sm mb-4 block"
+                >Contactez-nous</span
+              >
+              <h2
+                class="text-4xl md:text-5xl font-black text-primary tracking-tight"
+              >
+                Une équipe d'experts à votre écoute
+              </h2>
+            </div>
+            <div class="space-y-8">
+              <div class="flex items-center gap-6">
+                <div
+                  class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-primary"
+                >
+                  <span class="material-symbols-outlined text-3xl">person</span>
+                </div>
+                <div>
+                  <p
+                    class="text-sm font-bold text-on-surface-variant uppercase"
+                  >
+                    Responsable Projet
+                  </p>
+                  <p class="text-xl font-black text-primary">
+                    Chaima Bounawara
+                  </p>
+                </div>
+              </div>
+              <div class="grid md:grid-cols-2 gap-8">
+                <div class="flex items-center gap-4">
+                  <span class="material-symbols-outlined text-secondary"
+                    >call</span
+                  >
+                  <a
+                    href="tel:+21658644199"
+                    class="font-medium hover:text-secondary transition-colors"
+                    >+216 58 644 199</a
+                  >
+                </div>
+                <div class="flex items-center gap-4">
+                  <span class="material-symbols-outlined text-secondary"
+                    >mail</span
+                  >
+                  <a
+                    href="mailto:contact@smartpoultry.tn"
+                    class="font-medium hover:text-secondary transition-colors"
+                    >contact@smartpoultry.tn</a
+                  >
+                </div>
+              </div>
+              <div class="p-8 bg-surface-container-low rounded-3xl space-y-4">
+                <div class="flex gap-4">
+                  <span class="material-symbols-outlined text-primary"
+                    >location_on</span
+                  >
+                  <p class="text-on-surface-variant leading-relaxed">
+                    Rue de l'Indépendance, Immeuble Horizon,<br />2013 Ben
+                    Arous, Tunisie
+                  </p>
+                </div>
+                <div class="flex gap-4">
+                  <span class="material-symbols-outlined text-primary"
+                    >schedule</span
+                  >
+                  <p class="text-on-surface-variant leading-relaxed">
+                    Lundi - Vendredi: 08:30 - 17:30<br />Samedi: Sur rendez-vous
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="relative h-[600px] rounded-[3rem] overflow-hidden shadow-2xl"
+          >
+            <img
+              alt="Office location"
+              class="w-full h-full object-cover"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuA03xJoSvb-zuxVhvfdnVKtXiuxrQgd_BzdPDrurAg1jZMrshcxCoHKSKZXj5fAsEfS8vxNMWtaRPbDXzkS_25uzTvDpeI4rK5OWZlKxaImIP75hUrfAdjxBa7OM_XGnW377PR4FHLgrPf8EZUS1RAX7PMzfRUOHS_DvPnuJl8HQV2DoUJJW16a9KmQj9lmOADElqUccV_3vo9ThYWN7QmdIIekDy0VjoZPPDC_QLz034PjCQ6R4-sVs7yjh6QcA3unVOor1Fxc4H1O"
+            />
+            <div class="absolute inset-0 bg-primary/20"></div>
+            <div
+              class="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur-md p-6 rounded-2xl flex justify-between items-center"
+            >
+              <div>
+                <p class="font-bold text-primary">Siège Social</p>
+                <p class="text-sm text-on-surface-variant">
+                  Ben Arous, Tunisie
+                </p>
+              </div>
+              <a
+                class="bg-secondary text-white p-3 rounded-full hover:scale-110 transition-transform"
+                href="https://maps.google.com/?q=Ben+Arous,+Tunisie"
+                target="_blank"
+                rel="noopener"
+              >
+                <span class="material-symbols-outlined">directions</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-emerald-950 dark:bg-black w-full py-12 px-8">
+      <div class="max-w-[1440px] mx-auto">
+        <div
+          class="flex flex-col md:flex-row justify-between items-center gap-6 border-t border-emerald-900/30 pt-12"
+        >
+          <div class="flex flex-col items-center md:items-start gap-4">
+            <div class="text-lg font-bold text-emerald-50">SmartPoultry</div>
+            <p
+              class="font-['Inter'] text-sm tracking-wide uppercase font-medium text-emerald-500"
+            >
+              © 2025 SmartPoultry. Precision IoT for the Living Laboratory.
+            </p>
+          </div>
+          <div class="flex flex-wrap justify-center gap-8">
+            <a
+              class="font-['Inter'] text-sm tracking-wide uppercase font-medium text-emerald-700 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4 transition-opacity opacity-80 hover:opacity-100"
+              href="#"
+              >Privacy Policy</a
+            >
+            <a
+              class="font-['Inter'] text-sm tracking-wide uppercase font-medium text-emerald-700 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4 transition-opacity opacity-80 hover:opacity-100"
+              href="#"
+              >Terms of Service</a
+            >
+            <a
+              class="font-['Inter'] text-sm tracking-wide uppercase font-medium text-emerald-700 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4 transition-opacity opacity-80 hover:opacity-100"
+              href="#"
+              >API Documentation</a
+            >
+            <a
+              class="font-['Inter'] text-sm tracking-wide uppercase font-medium text-emerald-700 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4 transition-opacity opacity-80 hover:opacity-100"
+              href="#"
+              >Support</a
+            >
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Formspree JS Handler -->
+    <script>
+      const form = document.getElementById("registration-form");
+      const toast = document.getElementById("toast");
+      const btnText = document.getElementById("btn-text");
+      const btnSpinner = document.getElementById("btn-spinner");
+      const submitBtn = document.getElementById("submit-btn");
+
+      function showToast(success) {
+        const icon = document.getElementById("toast-icon");
+        const title = document.getElementById("toast-title");
+        const msg = document.getElementById("toast-msg");
+
+        if (success) {
+          toast.classList.remove("error");
+          icon.textContent = "check_circle";
+          title.textContent = "Demande envoyée avec succès !";
+          msg.textContent =
+            "Nous vous contacterons sous 2 à 5 jours ouvrables.";
+        } else {
+          toast.classList.add("error");
+          icon.textContent = "error";
+          title.textContent = "Erreur lors de l'envoi";
+          msg.textContent = "Vérifiez votre connexion ou réessayez plus tard.";
+        }
+
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 5000);
+      }
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        // Loading state
+        btnText.textContent = "Envoi en cours...";
+        btnSpinner.classList.remove("hidden");
+        submitBtn.disabled = true;
+
+        try {
+          const data = new FormData(form);
+          const response = await fetch(form.action, {
+            method: "POST",
+            body: data,
+            headers: { Accept: "application/json" },
+          });
+
+          if (response.ok) {
+            showToast(true);
+            form.reset();
+          } else {
+            showToast(false);
+          }
+        } catch (err) {
+          showToast(false);
+        } finally {
+          btnText.textContent = "Envoyer ma demande";
+          btnSpinner.classList.add("hidden");
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
