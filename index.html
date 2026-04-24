@@ -714,6 +714,7 @@
                 </div>
                 <p class="text-xs text-on-surface-variant mb-4">
                   Combien de bâtiments d'élevage souhaitez-vous connecter ?
+                  (max. 20)
                 </p>
                 <div class="flex items-center gap-4">
                   <button
@@ -964,18 +965,7 @@
          GÉNÉRATION DYNAMIQUE DES CARTES POULAILLERS
          ════════════════════════════════════════════════════════════════ */
 
-      const TYPES = [
-        { value: "chair", label: "Poulet de chair" },
-        { value: "ponte", label: "Poule pondeuse" },
-        { value: "dinde", label: "Dinde" },
-        { value: "autre", label: "Autre" },
-      ];
-
-      function buildTypeOptions() {
-        return TYPES.map(
-          (t) => `<option value="${t.value}">${t.label}</option>`,
-        ).join("");
-      }
+      // Type de volaille supprimé du formulaire (valeur fixe "chair" envoyée par défaut)
 
       function buildCarteHtml(i) {
         const num = i + 1;
@@ -994,23 +984,17 @@
 
           <div class="p-5 space-y-4">
 
-            <!-- Nom du poulailler + Type -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Nom du poulailler *</label>
-                <input
-                  id="p_nom_${i}" name="p_nom_${i}" type="text" required
-                  class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all"
-                  placeholder="Ex: Bâtiment A, Ferme Nord…"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Type de volaille *</label>
-                <select id="p_type_${i}" name="p_type_${i}"
-                  class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all">
-                  ${buildTypeOptions()}
-                </select>
-              </div>
+            <!-- Nom du poulailler (optionnel — nom auto si vide) -->
+            <div>
+              <label class="block text-xs font-bold text-on-surface-variant mb-1.5">
+                Nom du poulailler
+                <span class="ml-1 text-[10px] font-normal text-slate-400">(optionnel — automatique si vide)</span>
+              </label>
+              <input
+                id="p_nom_${i}" name="p_nom_${i}" type="text"
+                class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all"
+                placeholder="Bâtiment ${num} (par défaut)"
+              />
             </div>
 
             <!-- Nb volailles + Surface + Densité -->
@@ -1076,15 +1060,26 @@
       }
 
       function renderCartes() {
-        container.innerHTML = "";
-        for (let i = 0; i < nombrePoulaillers; i++) {
-          container.insertAdjacentHTML("beforeend", buildCarteHtml(i));
+        const cardsActuelles =
+          container.querySelectorAll(".poulailler-card").length;
+
+        if (nombrePoulaillers > cardsActuelles) {
+          // Ajouter uniquement les nouvelles cartes sans toucher aux existantes
+          for (let i = cardsActuelles; i < nombrePoulaillers; i++) {
+            container.insertAdjacentHTML("beforeend", buildCarteHtml(i));
+          }
+        } else if (nombrePoulaillers < cardsActuelles) {
+          // Supprimer les cartes en trop depuis la fin
+          for (let i = cardsActuelles - 1; i >= nombrePoulaillers; i--) {
+            const card = document.getElementById(`card-${i}`);
+            if (card) card.remove();
+          }
         }
       }
 
       function changerNombre(delta) {
         const nouveau = nombrePoulaillers + delta;
-        if (nouveau < 1 || nouveau > 10) return;
+        if (nouveau < 1 || nouveau > 20) return;
         nombrePoulaillers = nouveau;
         nbDisplay.textContent = nouveau;
         renderCartes();
@@ -1150,7 +1145,9 @@
         form.reset();
         nombrePoulaillers = 1;
         nbDisplay.textContent = "1";
-        renderCartes();
+        // Au reset on recrée tout proprement
+        container.innerHTML = "";
+        container.insertAdjacentHTML("beforeend", buildCarteHtml(0));
       }
 
       /* ════════════════════════════════════════════════════════════════
@@ -1241,7 +1238,7 @@
         const poulaillers = [];
         for (let i = 0; i < nombrePoulaillers; i++) {
           const nom = document.getElementById(`p_nom_${i}`)?.value.trim() || "";
-          const type = document.getElementById(`p_type_${i}`)?.value || "chair";
+          // type fixé à "chair" par défaut (champ supprimé du formulaire)
           const nb_v = parseInt(
             document.getElementById(`p_nb_${i}`)?.value,
             10,
@@ -1256,15 +1253,8 @@
           const remarques =
             document.getElementById(`p_remarques_${i}`)?.value.trim() || "";
 
-          if (!nom) {
-            showToast(
-              "error",
-              `Poulailler ${i + 1} — Nom manquant`,
-              `Veuillez nommer le poulailler ${i + 1}.`,
-            );
-            document.getElementById(`p_nom_${i}`)?.focus();
-            return;
-          }
+          // Nom auto si champ vide : "Bâtiment 1", "Bâtiment 2", etc.
+          const nomFinal = nom || `Bâtiment ${i + 1}`;
           if (!nb_v || nb_v < 1) {
             showToast(
               "error",
@@ -1285,8 +1275,8 @@
           }
 
           poulaillers.push({
-            nom,
-            type,
+            nom: nomFinal,
+            type: "chair",
             nb_volailles: nb_v,
             surface: surf,
             densite,
@@ -1386,7 +1376,7 @@
       /* ════════════════════════════════════════════════════════════════
          INIT — rendre la première carte au chargement
          ════════════════════════════════════════════════════════════════ */
-      renderCartes();
+      container.insertAdjacentHTML("beforeend", buildCarteHtml(0));
     </script>
   </body>
 </html>
