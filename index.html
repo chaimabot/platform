@@ -283,7 +283,7 @@
             votre installation IoT.
           </p>
         </div>
-        <!-- Calendly Inline Widget — remplacez l'URL par votre lien Calendly réel -->
+        <!-- Calendly Inline Widget -->
         <iframe
           src="https://calendly.com/chaima-bounaouara/rdv-validation?embed=true"
           id="calendly-iframe"
@@ -346,7 +346,6 @@
             class="text-emerald-100/80 text-base sm:text-lg max-w-lg leading-relaxed"
           >
             Optimisez la santé de vos volailles grâce à la précision de l'IoT.
-            Un laboratoire vivant au service de votre productivité.
           </p>
           <div class="flex flex-col sm:flex-row gap-4">
             <a
@@ -946,8 +945,10 @@
     <script>
       /* ══════════════════════════════════════════════════════════════
          CONFIGURATION API
+         FIX 1: Une seule URL centralisée pointant sur le serveur de prod.
+                Suppression de l'ancienne API_URL localhost:5555.
          ══════════════════════════════════════════════════════════════ */
-      const API_BASE_URL = "https://smartpoultry-api.onrender.com";
+      const API_URL = "https://smartpoultry-api.onrender.com/api/auth/register";
 
       /* ── Références DOM ── */
       const form = document.getElementById("registration-form");
@@ -957,33 +958,32 @@
       const submitBtn = document.getElementById("submit-btn");
       const container = document.getElementById("poulaillers-container");
       const nbDisplay = document.getElementById("nb-display");
-      const API_URL = "http://localhost:5555/api/auth/register";
+
       let nombrePoulaillers = 1;
 
       /* ════════════════════════════════════════════════════════════════
          GÉNÉRATION DYNAMIQUE DES CARTES POULAILLERS
+
+         Champs alignés sur poulaillerSchema Mongoose :
+           name        ← p_nom       (requis, maxlength 80)
+           animalCount ← p_nb        (requis, min 1)
+           surface     ← p_surface   (requis, min 0.1)
+           densite     ← calculé auto (animalCount / surface, min 0)
+           address     ← p_adresse   (optionnel, maxlength 300)
+           remarque    ← p_remarques (optionnel, maxlength 200)
+
+         FIX 2: Champ "type volaille" supprimé — absent du poulaillerSchema
+                Mongoose et absent du registerSchema Joi (champ inconnu).
+         FIX 3: surface min="0.1" aligné sur schema (min: 0.1).
+         FIX 4: maxlength HTML ajoutés pour name(80), address(300), remarque(200).
          ════════════════════════════════════════════════════════════════ */
-
-      const TYPES = [
-        { value: "chair", label: "Poulet de chair" },
-        { value: "ponte", label: "Poule pondeuse" },
-        { value: "dinde", label: "Dinde" },
-        { value: "autre", label: "Autre" },
-      ];
-
-      function buildTypeOptions() {
-        return TYPES.map(
-          (t) => `<option value="${t.value}">${t.label}</option>`,
-        ).join("");
-      }
-
       function buildCarteHtml(i) {
         const num = i + 1;
         const emoji = ["🐔", "🏠", "🌾", "⚡", "🔬", "🌿", "💡", "🏗️"][i % 8];
         return `
         <div class="bg-white rounded-2xl border border-emerald-100 overflow-hidden poulailler-card" id="card-${i}" data-index="${i}">
 
-          <!-- En-tête de la carte -->
+          <!-- En-tête -->
           <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-700 to-primary">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-base">${emoji}</div>
@@ -994,28 +994,23 @@
 
           <div class="p-5 space-y-4">
 
-            <!-- Nom du poulailler + Type -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Nom du poulailler *</label>
-                <input
-                  id="p_nom_${i}" name="p_nom_${i}" type="text" required
-                  class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all"
-                  placeholder="Ex: Bâtiment A, Ferme Nord…"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Type de volaille *</label>
-                <select id="p_type_${i}" name="p_type_${i}"
-                  class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all">
-                  ${buildTypeOptions()}
-                </select>
-              </div>
+            <!-- name : requis, maxlength 80 (poulaillerSchema) -->
+            <div>
+              <label class="block text-xs font-bold text-on-surface-variant mb-1.5">
+                Nom du poulailler *
+                <span class="font-normal opacity-60 ml-1">(80 car. max)</span>
+              </label>
+              <input
+                id="p_nom_${i}" name="p_nom_${i}" type="text" required maxlength="80"
+                class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all"
+                placeholder="Ex: Bâtiment A, Ferme Nord…"
+              />
             </div>
 
-            <!-- Nb volailles + Surface + Densité -->
+            <!-- animalCount + surface + densite (calculé, readonly) -->
             <div class="grid grid-cols-3 gap-3">
               <div>
+                <!-- animalCount : min 1, requis -->
                 <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Nb. volailles *</label>
                 <input
                   id="p_nb_${i}" name="p_nb_${i}" type="number" min="1" required
@@ -1025,15 +1020,17 @@
                 />
               </div>
               <div>
+                <!-- surface : min 0.1 (poulaillerSchema min: 0.1) -->
                 <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Surface (m²) *</label>
                 <input
-                  id="p_surface_${i}" name="p_surface_${i}" type="number" min="1" required
+                  id="p_surface_${i}" name="p_surface_${i}" type="number" min="0.1" step="0.1" required
                   class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all"
                   placeholder="ex: 500"
                   oninput="calcDensiteP(${i})"
                 />
               </div>
               <div>
+                <!-- densite : calculé auto (animalCount/surface), readonly -->
                 <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Densité /m²</label>
                 <input
                   id="p_densite_${i}" type="number" min="0" step="0.01" readonly
@@ -1051,20 +1048,26 @@
               </div>
             </div>
 
-            <!-- Adresse spécifique + Remarques -->
+            <!-- address (optionnel, maxlength 300) + remarque (optionnel, maxlength 200) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Adresse du bâtiment</label>
+                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">
+                  Adresse du bâtiment
+                  <span class="font-normal opacity-60 ml-1">(optionnel)</span>
+                </label>
                 <input
-                  id="p_adresse_${i}" name="p_adresse_${i}" type="text"
+                  id="p_adresse_${i}" name="p_adresse_${i}" type="text" maxlength="300"
                   class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all"
                   placeholder="Si différente de l'adresse principale"
                 />
               </div>
               <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">Remarques</label>
+                <label class="block text-xs font-bold text-on-surface-variant mb-1.5">
+                  Remarques
+                  <span class="font-normal opacity-60 ml-1">(200 car. max)</span>
+                </label>
                 <input
-                  id="p_remarques_${i}" name="p_remarques_${i}" type="text"
+                  id="p_remarques_${i}" name="p_remarques_${i}" type="text" maxlength="200"
                   class="w-full bg-surface-container-low border border-transparent focus:border-emerald-500 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 transition-all"
                   placeholder="Infos supplémentaires…"
                 />
@@ -1092,6 +1095,7 @@
 
       /* ════════════════════════════════════════════════════════════════
          CALCUL DE DENSITÉ PAR POULAILLER
+         Formule : densite = animalCount / surface  (>= 0 selon schema)
          ════════════════════════════════════════════════════════════════ */
       function calcDensiteP(i) {
         const nb = parseFloat(document.getElementById(`p_nb_${i}`)?.value) || 0;
@@ -1171,15 +1175,27 @@
       /* ════════════════════════════════════════════════════════════════
          SOUMISSION → POST /api/auth/register
 
-         Payload JSON envoyé au controller :
-           firstName    string  required
-           lastName     string  required
-           email        string  required
-           phone        string  required
-           adresse      string  required
-           poulaillers  array   [{
-             nom, type, nb_volailles, surface, densite, adresse, remarques
+         Payload JSON envoyé (aligné sur registerSchema Joi + modèles Mongoose) :
+           firstName   string  required  → User.firstName
+           lastName    string  required  → User.lastName
+           email       string  required  → User.email
+           phone       string  required  → User.phone
+           adresse     string  required  → adresse principale (fallback address)
+           poulaillers array   required  → [{
+             nom          string  → Poulailler.name        (maxlength 80)
+             nb_volailles number  → Poulailler.animalCount (min 1)
+             surface      number  → Poulailler.surface     (min 0.1)
+             densite      number  → Poulailler.densite     (calculé, min 0)
+             adresse      string  → Poulailler.address     (optionnel)
+             remarques    string  → Poulailler.remarque    (optionnel, maxlength 200)
            }]
+
+         FIX 5: "type" supprimé du payload — absent du poulaillerSchema Mongoose.
+         FIX 6: nb_volailles et surface legacy racine supprimés — inutiles.
+         FIX 7: densite recalculé ici (ne pas lire l'input readonly potentiellement vide).
+         FIX 8: adresse du bâtiment = "" si non saisie (le backend fait le fallback).
+         FIX 9: validation surface min 0.1 (aligné sur schema).
+         FIX 10: validation nom maxlength 80 ajoutée.
          ════════════════════════════════════════════════════════════════ */
       form.addEventListener("submit", async function (e) {
         e.preventDefault();
@@ -1241,7 +1257,6 @@
         const poulaillers = [];
         for (let i = 0; i < nombrePoulaillers; i++) {
           const nom = document.getElementById(`p_nom_${i}`)?.value.trim() || "";
-          const type = document.getElementById(`p_type_${i}`)?.value || "chair";
           const nb_v = parseInt(
             document.getElementById(`p_nb_${i}`)?.value,
             10,
@@ -1249,10 +1264,12 @@
           const surf = parseFloat(
             document.getElementById(`p_surface_${i}`)?.value,
           );
+          // FIX 7: recalcul direct, ne pas lire l'input readonly
           const densite =
-            parseFloat(document.getElementById(`p_densite_${i}`)?.value) || 0;
+            nb_v > 0 && surf > 0 ? parseFloat((nb_v / surf).toFixed(2)) : 0;
+          // FIX 8: "" si non saisi — backend fait le fallback sur adresse principale
           const adr =
-            document.getElementById(`p_adresse_${i}`)?.value.trim() || adresse;
+            document.getElementById(`p_adresse_${i}`)?.value.trim() || "";
           const remarques =
             document.getElementById(`p_remarques_${i}`)?.value.trim() || "";
 
@@ -1261,6 +1278,16 @@
               "error",
               `Poulailler ${i + 1} — Nom manquant`,
               `Veuillez nommer le poulailler ${i + 1}.`,
+            );
+            document.getElementById(`p_nom_${i}`)?.focus();
+            return;
+          }
+          // FIX 10: validation longueur nom (maxlength 80 côté schema)
+          if (nom.length > 80) {
+            showToast(
+              "error",
+              `Poulailler ${i + 1} — Nom trop long`,
+              `Le nom du poulailler ${i + 1} ne doit pas dépasser 80 caractères.`,
             );
             document.getElementById(`p_nom_${i}`)?.focus();
             return;
@@ -1274,24 +1301,25 @@
             document.getElementById(`p_nb_${i}`)?.focus();
             return;
           }
-          if (!surf || surf < 1) {
+          // FIX 9: min 0.1 aligné sur poulaillerSchema (surface: min 0.1)
+          if (!surf || surf < 0.1) {
             showToast(
               "error",
-              `Poulailler ${i + 1} — Surface manquante`,
-              `Saisissez la surface du poulailler ${i + 1} (min. 1 m²).`,
+              `Poulailler ${i + 1} — Surface invalide`,
+              `Saisissez la surface du poulailler ${i + 1} (min. 0.1 m²).`,
             );
             document.getElementById(`p_surface_${i}`)?.focus();
             return;
           }
 
+          // FIX 5: "type" absent — payload aligné exactement sur registerSchema Joi
           poulaillers.push({
-            nom,
-            type,
-            nb_volailles: nb_v,
-            surface: surf,
-            densite,
-            adresse: adr,
-            remarques,
+            nom, // → Poulailler.name
+            nb_volailles: nb_v, // → Poulailler.animalCount
+            surface: surf, // → Poulailler.surface
+            densite, // → Poulailler.densite (calculé)
+            adresse: adr, // → Poulailler.address (backend: p.adresse || adresse)
+            remarques, // → Poulailler.remarque
           });
         }
 
@@ -1302,17 +1330,13 @@
 
         try {
           /* ── 4. Payload final ── */
+          // FIX 6: Suppression des champs nb_volailles et surface legacy racine
           const payload = {
             firstName,
             lastName,
             email,
             phone,
             adresse,
-            // Pour la compatibilité avec le controller qui attend nb_volailles + surface :
-            // on prend les données du 1er poulailler (principal)
-            nb_volailles: poulaillers[0].nb_volailles,
-            surface: poulaillers[0].surface,
-            // Tous les poulaillers en détail
             poulaillers,
           };
 
@@ -1358,13 +1382,13 @@
             showToast(
               "error",
               "Erreur serveur",
-              "Une erreur s\'est produite. Réessayez dans quelques instants.",
+              "Une erreur s'est produite. Réessayez dans quelques instants.",
             );
             console.error("[API] 500:", json.message || json.error);
           } else {
             showToast(
               "error",
-              "Erreur lors de l\'envoi",
+              "Erreur lors de l'envoi",
               json.message || json.error || "Vérifiez votre connexion.",
             );
           }
@@ -1376,8 +1400,8 @@
             "Vérifiez votre connexion ou contactez-nous au +216 58 644 199.",
           );
         } finally {
-          btnText.textContent = "Soumettre ma demande d\'inscription";
-          btnSpinner.classList.remove("hidden"); // hidden après reset
+          btnText.textContent = "Soumettre ma demande d'inscription";
+          // FIX 11: Une seule opération cohérente (suppression du doublon remove+add)
           btnSpinner.classList.add("hidden");
           submitBtn.disabled = false;
         }
