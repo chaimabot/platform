@@ -805,7 +805,7 @@
               </div>
             </button>
             <a
-              href="https://drive.google.com/uc?export=download&id=1vt2XRBaSHvv_07K_jqUetr6JB4DZrlRB&confirm=t"
+              href="https://drive.google.com/file/d/1QCxEFeuLOjmnoDSYq9KXTrAHojwx2WnB/view?usp=sharing"
               download="SmartPoultry.apk"
               class="group bg-white text-emerald-950 px-8 py-4 rounded-2xl flex items-center gap-4 hover:bg-emerald-50 active:scale-95 transition-all"
             >
@@ -941,11 +941,6 @@
 
     <!-- Scripts -->
     <script>
-      /* ══════════════════════════════════════════════════════════════
-               CONFIGURATION API
-               FIX 1: Une seule URL centralisée pointant sur le serveur de prod.
-                      Suppression de l'ancienne API_URL localhost:5555.
-               ══════════════════════════════════════════════════════════════ */
       const API_URL =
         "https://smart-poultry-projet.onrender.com/api/auth/register";
 
@@ -960,22 +955,6 @@
 
       let nombrePoulaillers = 1;
 
-      /* ════════════════════════════════════════════════════════════════
-               GÉNÉRATION DYNAMIQUE DES CARTES POULAILLERS
-
-               Champs alignés sur poulaillerSchema Mongoose :
-                 name        ← p_nom       (requis, maxlength 80)
-                 animalCount ← p_nb        (requis, min 1)
-                 surface     ← p_surface   (requis, min 0.1)
-                 densite     ← calculé auto (animalCount / surface, min 0)
-                 address     ← p_adresse   (optionnel, maxlength 300)
-                 remarque    ← p_remarques (optionnel, maxlength 200)
-
-               FIX 2: Champ "type volaille" supprimé — absent du poulaillerSchema
-                      Mongoose et absent du registerSchema Joi (champ inconnu).
-               FIX 3: surface min="0.1" aligné sur schema (min: 0.1).
-               FIX 4: maxlength HTML ajoutés pour name(80), address(300), remarque(200).
-               ════════════════════════════════════════════════════════════════ */
       function buildCarteHtml(i) {
         const num = i + 1;
         const emoji = ["🐔", "🏠", "🌾", "⚡", "🔬", "🌿", "💡", "🏗️"][i % 8];
@@ -1092,10 +1071,6 @@
         renderCartes();
       }
 
-      /* ════════════════════════════════════════════════════════════════
-               CALCUL DE DENSITÉ PAR POULAILLER
-               Formule : densite = animalCount / surface  (>= 0 selon schema)
-               ════════════════════════════════════════════════════════════════ */
       function calcDensiteP(i) {
         const nb = parseFloat(document.getElementById(`p_nb_${i}`)?.value) || 0;
         const surface =
@@ -1125,9 +1100,6 @@
         }
       }
 
-      /* ════════════════════════════════════════════════════════════════
-               TOAST
-               ════════════════════════════════════════════════════════════════ */
       function showToast(type, titreMsg, corpsMsg) {
         const icon = document.getElementById("toast-icon");
         const title = document.getElementById("toast-title");
@@ -1156,9 +1128,6 @@
         renderCartes();
       }
 
-      /* ════════════════════════════════════════════════════════════════
-               CALENDLY
-               ════════════════════════════════════════════════════════════════ */
       function openCalendly(firstName, lastName, email) {
         const url =
           `https://calendly.com/chaima-bounaouara/rdv-validation?embed=true` +
@@ -1177,31 +1146,6 @@
           if (e.target === this) closeCalendly();
         });
 
-      /* ════════════════════════════════════════════════════════════════
-               SOUMISSION → POST /api/auth/register
-
-               Payload JSON envoyé (aligné sur registerSchema Joi + modèles Mongoose) :
-                 firstName   string  required  → User.firstName
-                 lastName    string  required  → User.lastName
-                 email       string  required  → User.email
-                 phone       string  required  → User.phone
-                 adresse     string  required  → adresse principale (fallback address)
-                 poulaillers array   required  → [{
-                   nom          string  → Poulailler.name        (maxlength 80)
-                   nb_volailles number  → Poulailler.animalCount (min 1)
-                   surface      number  → Poulailler.surface     (min 0.1)
-                   densite      number  → Poulailler.densite     (calculé, min 0)
-                   adresse      string  → Poulailler.address     (optionnel)
-                   remarques    string  → Poulailler.remarque    (optionnel, maxlength 200)
-                 }]
-
-               FIX 5: "type" supprimé du payload — absent du poulaillerSchema Mongoose.
-               FIX 6: nb_volailles et surface legacy racine supprimés — inutiles.
-               FIX 7: densite recalculé ici (ne pas lire l'input readonly potentiellement vide).
-               FIX 8: adresse du bâtiment = "" si non saisie (le backend fait le fallback).
-               FIX 9: validation surface min 0.1 (aligné sur schema).
-               FIX 10: validation nom maxlength 80 ajoutée.
-               ════════════════════════════════════════════════════════════════ */
       form.addEventListener("submit", async function (e) {
         e.preventDefault();
 
@@ -1258,7 +1202,6 @@
           return;
         }
 
-        /* ── 2. Collecter et valider chaque poulailler ── */
         const poulaillers = [];
         for (let i = 0; i < nombrePoulaillers; i++) {
           const nom = document.getElementById(`p_nom_${i}`)?.value.trim() || "";
@@ -1269,10 +1212,8 @@
           const surf = parseFloat(
             document.getElementById(`p_surface_${i}`)?.value,
           );
-          // FIX 7: recalcul direct, ne pas lire l'input readonly
           const densite =
             nb_v > 0 && surf > 0 ? parseFloat((nb_v / surf).toFixed(2)) : 0;
-          // FIX 8: "" si non saisi — backend fait le fallback sur adresse principale
           const adr =
             document.getElementById(`p_adresse_${i}`)?.value.trim() || "";
           const remarques =
@@ -1287,7 +1228,6 @@
             document.getElementById(`p_nom_${i}`)?.focus();
             return;
           }
-          // FIX 10: validation longueur nom (maxlength 80 côté schema)
           if (nom.length > 80) {
             showToast(
               "error",
@@ -1306,7 +1246,6 @@
             document.getElementById(`p_nb_${i}`)?.focus();
             return;
           }
-          // FIX 9: min 0.1 aligné sur poulaillerSchema (surface: min 0.1)
           if (!surf || surf < 0.1) {
             showToast(
               "error",
@@ -1317,7 +1256,6 @@
             return;
           }
 
-          // FIX 5: "type" absent — payload aligné exactement sur registerSchema Joi
           poulaillers.push({
             nom, // → Poulailler.name
             nb_volailles: nb_v, // → Poulailler.animalCount
@@ -1328,14 +1266,11 @@
           });
         }
 
-        /* ── 3. UI chargement ── */
         btnText.textContent = "Envoi en cours...";
         btnSpinner.classList.remove("hidden");
         submitBtn.disabled = true;
 
         try {
-          /* ── 4. Payload final ── */
-          // FIX 6: Suppression des champs nb_volailles et surface legacy racine
           const payload = {
             firstName,
             lastName,
@@ -1410,15 +1345,11 @@
           );
         } finally {
           btnText.textContent = "Soumettre ma demande d'inscription";
-          // FIX 11: Une seule opération cohérente (suppression du doublon remove+add)
           btnSpinner.classList.add("hidden");
           submitBtn.disabled = false;
         }
       });
 
-      /* ════════════════════════════════════════════════════════════════
-               INIT — rendre la première carte au chargement
-               ════════════════════════════════════════════════════════════════ */
       renderCartes();
     </script>
   </body>
